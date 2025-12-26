@@ -14,35 +14,55 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "✅ Stream is Running 24/7"
+    # Render monitor ke liye response
+    return "✅ Disney Stream is Active on Render!"
 
 def run_web_server():
-    # Render default port 10000 use karta hai
+    # Render ke liye 0.0.0.0 aur dynamic port zaroori hai
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
 def start_stream():
+    # Forceful encoding to fix Black Screen issues
     command = [
-        'ffmpeg',
-        '-hide_banner', '-loglevel', 'info',
+        'ffmpeg', '-hide_banner', '-loglevel', 'info',
         '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
         '-i', INPUT_URL,
-        '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',
-        '-b:v', '700k', '-s', '854x480', '-r', '24', '-g', '48', '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac', '-b:a', '96k', '-ar', '44100', '-af', 'aresample=async=1',
-        '-f', 'flv', RTMP_URL
+        
+        # Video encoding fix (Black Screen Solutions)
+        '-c:v', 'libx264', 
+        '-preset', 'ultrafast', 
+        '-tune', 'zerolatency',
+        '-vf', 'scale=854:480,format=yuv420p', 
+        '-b:v', '800k', 
+        '-maxrate', '850k', 
+        '-bufsize', '1700k',
+        '-g', '50', 
+        
+        # Audio sync fix
+        '-c:a', 'aac', 
+        '-b:a', '128k', 
+        '-ar', '44100',
+        '-af', 'aresample=async=1',
+        
+        '-f', 'flv', 
+        RTMP_URL
     ]
     
     while True:
         try:
-            print("🚀 Starting Stream...")
+            print("🚀 Starting Stream on Render...")
             subprocess.run(command)
         except Exception as e:
             print(f"❌ Error: {e}")
+        
+        print("🔄 Reconnecting in 5 seconds...")
         time.sleep(5)
 
 if __name__ == "__main__":
     t = threading.Thread(target=run_web_server)
     t.daemon = True
     t.start()
+    
     start_stream()
+        
